@@ -11,6 +11,13 @@ struct Edge {
     id: usize,
     from: usize, // Node ID
     to: usize,   // Node ID
+    kind: EdgeKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+enum EdgeKind {
+    Straight,
+    Squiggly,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,10 +57,10 @@ impl Graph {
     }
 
     // To create an edge we need two nodes
-    fn add_edge(&mut self, from: usize, to: usize) -> usize {
+    fn add_edge(&mut self, from: usize, to: usize, kind: EdgeKind) -> usize {
         let id = self.next_id;
         self.next_id += 1;
-        self.edges.insert(id, Edge { id, from, to });
+        self.edges.insert(id, Edge { id, from, to, kind });
         // Update the edges of the FROM and TO nodes.
         if let Some(node1) = self.nodes.get_mut(&from) {
             node1.edges.push(id);
@@ -108,7 +115,7 @@ impl Graph {
         let node2 = other_node(edge2, id);
 
         // Create a new edge connecting node1 and node2
-        self.add_edge(node1, node2);
+        self.add_edge(node1, node2, edge1.kind);
 
         // Remove the old edges
         self.remove_edge(edge1_id);
@@ -136,7 +143,7 @@ mod tests {
         let mut graph = Graph::new();
         let node1 = graph.add_node();
         let node2 = graph.add_node();
-        let edge = graph.add_edge(node1, node2);
+        let edge = graph.add_edge(node1, node2, EdgeKind::Straight);
         println!("Before: {:#?}", graph);
         graph.remove_edge(edge);
         println!("After: {:#?}", graph);
@@ -151,7 +158,7 @@ mod tests {
         let mut graph = Graph::new();
         let node1 = graph.add_node();
         let node2 = graph.add_node();
-        graph.add_edge(node1, node2);
+        graph.add_edge(node1, node2, EdgeKind::Straight);
         let cloned = graph.clone();
         println!("Original: {:#?}", graph);
         println!("Cloned: {:#?}", cloned);
@@ -164,8 +171,8 @@ mod tests {
         let node1 = graph.add_node();
         let node2 = graph.add_node();
         let node3 = graph.add_node();
-        graph.add_edge(node1, node2);
-        graph.add_edge(node2, node3);
+        graph.add_edge(node1, node2, EdgeKind::Straight);
+        graph.add_edge(node2, node3, EdgeKind::Straight);
         println!("Before: {:#?}", graph);
         graph.consolidate_node(node2);
         println!("After: {:#?}", graph);
