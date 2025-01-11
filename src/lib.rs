@@ -52,7 +52,11 @@ impl Graph {
     fn remove_node(&mut self, id: usize) {
         // TODO: is assert! the Rust convention here?
         assert!(
-            self.nodes.get(&id).unwrap().edges.is_empty(),
+            self.nodes
+                .get(&id)
+                .expect("Node not found!")
+                .edges
+                .is_empty(),
             "Trying to remove a node that has edges!"
         );
         self.nodes.remove(&id);
@@ -74,7 +78,7 @@ impl Graph {
     }
 
     fn remove_edge(&mut self, id: usize) {
-        let edge = self.edges.get_mut(&id).unwrap();
+        let edge = self.edges.get_mut(&id).expect("Edge not Found!");
         // Update the nodes
         if let Some(from) = self.nodes.get_mut(&edge.from) {
             from.edges.retain(|&x| x != id);
