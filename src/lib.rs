@@ -83,6 +83,7 @@ impl Graph {
         // Get the edges connected to the node
         let node = self.nodes.get(&id).expect("Node not found!");
         let edges = &node.edges;
+
         // Only consolidate if the node has exactly 2 edges
         if edges.len() != 2 {
             return;
@@ -140,7 +141,7 @@ mod tests {
         graph.remove_edge(edge);
         println!("After: {:#?}", graph);
         assert_eq!(graph.edges.len(), 0);
-        for (_, node) in &graph.nodes {
+        for node in graph.nodes.values() {
             assert_eq!(node.edges.len(), 0);
         }
     }
