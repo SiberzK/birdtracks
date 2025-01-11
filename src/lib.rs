@@ -105,8 +105,8 @@ impl Graph {
         // Get the connected nodes
         let edge1 = self.edges.get(&edge1_id).expect("Edge not found!");
         let edge2 = self.edges.get(&edge2_id).expect("Edge not found!");
-        let node1 = other_node(edge1, id);
-        let node2 = other_node(edge2, id);
+        let node1 = Self::other_node(edge1, id);
+        let node2 = Self::other_node(edge2, id);
 
         // Create a new edge connecting node1 and node2
         self.add_edge(node1, node2, edge1.kind);
@@ -118,13 +118,13 @@ impl Graph {
         // Remove the intermediate node
         self.remove_node(id);
     }
-}
 
-fn other_node(edge: &Edge, id: usize) -> usize {
-    if edge.from == id {
-        edge.to
-    } else {
-        edge.from
+    fn other_node(edge: &Edge, id: usize) -> usize {
+        if edge.from == id {
+            edge.to
+        } else {
+            edge.from
+        }
     }
 }
 
