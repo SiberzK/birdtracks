@@ -102,12 +102,6 @@ impl Graph {
         let edge1_id = edges[0];
         let edge2_id = edges[1];
 
-        // If we have no edges at all then remove the node
-        if edges.len() == 0 {
-            eprintln!("Warning: Found a node with no edges!");
-            self.remove_node(id);
-        }
-
         // Get the connected nodes
         let edge1 = self.edges.get(&edge1_id).expect("Edge not found!");
         let edge2 = self.edges.get(&edge2_id).expect("Edge not found!");
