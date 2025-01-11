@@ -88,15 +88,16 @@ impl Graph {
 
     // If a vertex has no edges, then remove it
     // If a vertex connects only 2 edges, then remove it and rejoin
-    fn consolidate_node(&mut self, id: usize) {
+    fn collapse_node(&mut self, id: usize) {
         // Get the edges connected to the node
         let node = self.nodes.get(&id).expect("Node not found!");
         let edges = &node.edges;
 
-        // Only consolidate if the node has exactly 2 edges
-        if edges.len() != 2 {
-            return;
-        }
+        assert!(
+            edges.len() == 2,
+            "Expected exactly 2 edges, found {}",
+            edges.len()
+        );
 
         // Collect the edges and the nodes they connect to
         // Note: this copies the usize values, so we drop the reference to self
@@ -276,7 +277,7 @@ mod tests {
     }
 
     #[test]
-    fn test_consolidate_node() {
+    fn test_collapse_node() {
         let mut graph = Graph::new();
         let node1 = graph.add_node();
         let node2 = graph.add_node();
@@ -284,7 +285,7 @@ mod tests {
         graph.add_edge(node1, node2, EdgeKind::Straight);
         graph.add_edge(node2, node3, EdgeKind::Straight);
         println!("Before: {:#?}", graph);
-        graph.consolidate_node(node2);
+        graph.collapse_node(node2);
         println!("After: {:#?}", graph);
         assert!(graph.nodes.len() == 2);
         assert!(graph.edges.len() == 1);
