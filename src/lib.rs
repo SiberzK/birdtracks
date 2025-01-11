@@ -209,43 +209,53 @@ impl<'a> GraphValidator<'a> {
         match node.edges.len() {
             0 => Err(ValidationError::new(DanglingNode)),
             1 => Ok(()),
-            2 => {
-                if self.is_straight_to_squiggly(node) {
-                    Err(ValidationError::new(StraightToSquiggly))
-                } else {
-                    Ok(())
-                }
+            2 => self.is_straight_to_squiggly(node),
+            3 => self.is_1_straight_2_squiggly(node),
+            _ => Err(ValidationError::new(TooManyEdges)),
+        }
+    }
+
+    // Check if a node has exactly one straight edge and one squiggly
+    fn is_straight_to_squiggly(&self, node: &Node) -> Result<(), ValidationError> {
+        let edges = &node.edges;
+        let edge1 = self.graph.edges.get(&edges[0]);
+        let edge2 = self.graph.edges.get(&edges[1]);
+
+        match (edge1, edge2) {
+            (Some(e1), Some(e2)) if e1.kind != e2.kind => {
+                Err(ValidationError::new(StraightToSquiggly))
             }
-            3 => {
-                if self.is_1_straight_2_squiggly(node) {
+            (Some(_), Some(_)) => Ok(()),
+            _ => panic!(
+                "Expected 2 valid edges, found edge1={:?}, edge2={:?}",
+                edge1, edge2
+            ),
+        }
+    }
+
+    fn is_1_straight_2_squiggly(&self, node: &Node) -> Result<(), ValidationError> {
+        let edges = &node.edges;
+        let edge1 = self.graph.edges.get(&edges[0]);
+        let edge2 = self.graph.edges.get(&edges[1]);
+        let edge3 = self.graph.edges.get(&edges[2]);
+
+        match (edge1, edge2, edge3) {
+            (Some(e1), Some(e2), Some(e3)) => {
+                let squiggly_count = [e1, e2, e3]
+                    .iter()
+                    .filter(|&&edge| edge.kind == EdgeKind::Squiggly)
+                    .count();
+                if squiggly_count == 2 {
                     Err(ValidationError::new(TwoSquigglyVertex))
                 } else {
                     Ok(())
                 }
             }
-            _ => Err(ValidationError::new(TooManyEdges)),
+            _ => panic!(
+                "Expected 3 valid edges, found edge1={:?}, edge2={:?}",
+                edge1, edge2
+            ),
         }
-    }
-
-    // Check if a node has exactly two edges, one straight and one squiggly
-    fn is_straight_to_squiggly(&self, node: &Node) -> bool {
-        let edges = &node.edges;
-        let edge1 = self.graph.edges.get(&edges[0]);
-        let edge2 = self.graph.edges.get(&edges[1]);
-        edge1.unwrap().kind != edge2.unwrap().kind
-    }
-
-    // Check if a node has exactly 1 straight edge and 2 squiggly edges
-    fn is_1_straight_2_squiggly(&self, node: &Node) -> bool {
-        let edges = &node.edges;
-        let edge1 = self.graph.edges.get(&edges[0]).unwrap().kind;
-        let edge2 = self.graph.edges.get(&edges[1]).unwrap().kind;
-        let edge3 = self.graph.edges.get(&edges[2]).unwrap().kind;
-        let count = [edge1, edge2, edge3]
-            .iter()
-            .filter(|&&e| e == EdgeKind::Squiggly)
-            .count();
-        count == 2
     }
 }
 
