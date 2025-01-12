@@ -78,7 +78,8 @@ impl Graph {
     }
 
     fn remove_edge(&mut self, id: usize) {
-        let edge = self.edges.get_mut(&id).expect("Edge not Found!");
+        // Remove the edge from graph
+        let edge = self.edges.remove(&id).expect("Edge not Found!");
         // Update the nodes
         if let Some(from) = self.nodes.get_mut(&edge.from) {
             from.edges.retain(|&x| x != id);
@@ -86,8 +87,6 @@ impl Graph {
         if let Some(to) = self.nodes.get_mut(&edge.to) {
             to.edges.retain(|&x| x != id);
         }
-        // Update the Graph
-        self.edges.remove(&id);
     }
 
     // If a vertex has no edges, then remove it
