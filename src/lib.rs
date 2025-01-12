@@ -170,10 +170,6 @@ impl ValidationError {
             kind,
         }
     }
-
-    fn kind(&self) -> &ValidationErrorKind {
-        &self.kind
-    }
 }
 
 impl fmt::Display for ValidationError {
