@@ -2,36 +2,42 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 
+/// Represents a node in the graph.
 #[derive(Debug, Clone, PartialEq)]
 struct Node {
     id: usize,
-    edges: Vec<usize>, // Connected Edge IDs
+    edges: Vec<usize>, // IDs of connected edges
 }
 
+/// Represents an edge in the graph.
+///
+/// Edges connect two nodes and can have different types.
 #[derive(Debug, Clone, PartialEq)]
 struct Edge {
     id: usize,
-    from: usize, // Node ID
-    to: usize,   // Node ID
-    kind: EdgeKind,
+    from: usize,    // Source node ID
+    to: usize,      // Target node ID
+    kind: EdgeKind, // Type of the edge
 }
 
+/// Types of edges in the graph.
 #[derive(Debug, Clone, PartialEq, Copy)]
 enum EdgeKind {
     Straight,
     Squiggly,
 }
 
+/// Represents a graph containing nodes and edges.
 #[derive(Debug, Clone, PartialEq)]
 struct Graph {
-    nodes: HashMap<usize, Node>,
-    edges: HashMap<usize, Edge>,
-    next_id: usize, // Counter for unique IDs
+    nodes: HashMap<usize, Node>, // Map of node IDs to nodes
+    edges: HashMap<usize, Edge>, // Map of edge IDs to edges
+    next_id: usize,              // Counter for generating unique IDs
 }
 
-// TODO: Remove nodes that have no edges
-// Note that there should never be edges with no nodes. Check this.
+// Implementation of Graph methods
 impl Graph {
+    /// Creates a new, empty graph.
     fn new() -> Self {
         Self {
             nodes: HashMap::new(),
@@ -40,7 +46,7 @@ impl Graph {
         }
     }
 
-    // We create dangling nodes, then join the edges later
+    /// Adds a new node to the graph and returns its unique ID.
     fn add_node(&mut self) -> usize {
         let id = self.next_id;
         self.next_id += 1;
@@ -48,21 +54,23 @@ impl Graph {
         id
     }
 
-    // Delete dangling nodes
+    /// Removes a node from the graph.
+    ///
+    /// # Panics
+    /// Panics if the node has any connected edges or if the node does not exist.
     fn remove_node(&mut self, id: usize) {
-        // TODO: is assert! the Rust convention here?
         assert!(
             self.nodes
                 .get(&id)
                 .expect("Node not found!")
                 .edges
                 .is_empty(),
-            "Trying to remove a node that has edges!"
+            "Cannot remove a node that has edges!"
         );
         self.nodes.remove(&id);
     }
 
-    // To create an edge we need two nodes
+    /// Adds a new edge between two nodes and returns its unique ID.
     fn add_edge(&mut self, from: usize, to: usize, kind: EdgeKind) -> usize {
         let id = self.next_id;
         self.next_id += 1;
@@ -77,6 +85,10 @@ impl Graph {
         id
     }
 
+    /// Removes an edge from the graph and updates the connected nodes.
+    ///
+    /// # Panics
+    /// Panics if the edge does not exist.
     fn remove_edge(&mut self, id: usize) {
         // Remove the edge from graph
         let edge = self.edges.remove(&id).expect("Edge not Found!");
@@ -89,10 +101,11 @@ impl Graph {
         }
     }
 
-    // If a vertex has no edges, then remove it
-    // If a vertex connects only 2 edges, then remove it and rejoin
+    /// Collapses a node with two edges into a single edge, removing the intermediate node.
+    ///
+    /// # Panics
+    /// Panics if the node does not exist or has a number of edges other than two.
     fn collapse_node(&mut self, id: usize) {
-        // Get the edges connected to the node
         let node = self.nodes.get(&id).expect("Node not found!");
         let edges = &node.edges;
 
@@ -125,6 +138,7 @@ impl Graph {
         self.remove_node(id);
     }
 
+    /// Retrieves the node at the opposite end of the edge from the specified node
     fn other_node(edge: &Edge, id: usize) -> usize {
         if edge.from == id {
             edge.to
@@ -133,39 +147,42 @@ impl Graph {
         }
     }
 
+    /// Validates the graph and returns a `ValidationResult`.
     fn validate(&self) -> ValidationResult {
         let validator = GraphValidator::new(self);
         validator.validate()
     }
 }
 
+/// Represents a validation error during graph validation.
 #[derive(Debug)]
 struct ValidationError {
-    kind: ValidationErrorKind,
-    message: String,
+    kind: ValidationErrorKind, // Type of validation error
+    message: String,           // Error message
 }
 
+/// Types of validation errors.
 #[derive(Debug)]
 enum ValidationErrorKind {
-    TooManyEdges,
-    TwoSquigglyVertex,
-    StraightToSquiggly,
-    DanglingNode,
+    TooManyEdges,       // A node has more than 3 edges
+    TwoSquigglyVertex,  // A node with 3 edges has more than 1 squiggly edge
+    StraightToSquiggly, // A node with 2 edges has mixed edge types
+    DanglingNode,       // A node has no edges
 }
 
 use ValidationErrorKind::*;
 
 impl ValidationError {
+    /// Creates a new `ValidationError`.
     fn new(kind: ValidationErrorKind) -> Self {
         ValidationError {
             message: match kind {
                 TooManyEdges => "A node can have at most 3 edges.".to_owned(),
                 TwoSquigglyVertex => "A node can have at most 1 squiggly edge.".to_owned(),
+                DanglingNode => "A node must have at least one edge.".to_owned(),
                 StraightToSquiggly => {
-                    "A node with only 2 edges must ensure that the edges are the same kind."
-                        .to_owned()
+                    "A node with 2 edges must have edges of the same kind.".to_owned()
                 }
-                DanglingNode => "A node must have an edge.".to_owned(),
             },
             kind,
         }
@@ -180,12 +197,14 @@ impl fmt::Display for ValidationError {
 
 impl Error for ValidationError {}
 
+/// The result of validating a graph.
 struct ValidationResult {
-    valid: bool,
-    errors: Vec<ValidationError>,
+    valid: bool,                  // Indicates whether the graph is valid
+    errors: Vec<ValidationError>, // List of validation errors (if any)
 }
 
 impl ValidationResult {
+    /// Creates a new, valid `ValidationResult`.
     fn new() -> Self {
         Self {
             valid: true,
@@ -193,29 +212,31 @@ impl ValidationResult {
         }
     }
 }
-// Validator for the graph structure
+
+/// Validator for checking the structural integrity of a graph.
 struct GraphValidator<'a> {
-    graph: &'a Graph, // We borrow the Graph, so tie the lifetimes
+    graph: &'a Graph, // Reference to the graph being validated
 }
 
 impl<'a> GraphValidator<'a> {
+    /// Creates a new `GraphValidator`.
     fn new(graph: &'a Graph) -> Self {
         GraphValidator { graph }
     }
 
-    // Validate the entire graph
+    /// Validates the entire graph and returns a `ValidationResult`.
     fn validate(&self) -> ValidationResult {
         let mut results = ValidationResult::new();
         for node in self.graph.nodes.values() {
             if let Err(e) = self.validate_node(node) {
                 results.valid = false;
                 results.errors.push(e);
-            };
+            }
         }
         results
     }
 
-    // Validate a specific node in the graph
+    /// Validates a specific node and its connections.
     fn validate_node(&self, node: &Node) -> Result<(), ValidationError> {
         match node.edges.len() {
             0 => Err(ValidationError::new(DanglingNode)),
@@ -226,7 +247,7 @@ impl<'a> GraphValidator<'a> {
         }
     }
 
-    // Check if a node has exactly one straight edge and one squiggly
+    /// Checks if a node with 2 edges has edges of the same kind.
     fn is_straight_to_squiggly(&self, node: &Node) -> Result<(), ValidationError> {
         let edges = &node.edges;
         let edge1 = self.graph.edges.get(&edges[0]);
@@ -244,6 +265,7 @@ impl<'a> GraphValidator<'a> {
         }
     }
 
+    /// Checks if a node with 3 edges has at most 1 squiggly edge.
     fn is_1_straight_2_squiggly(&self, node: &Node) -> Result<(), ValidationError> {
         let edges = &node.edges;
         let edge1 = self.graph.edges.get(&edges[0]);
