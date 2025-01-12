@@ -133,7 +133,7 @@ impl Graph {
         }
     }
 
-    fn validate(&self) -> Vec<Result<(), ValidationError>> {
+    fn validate(&self) -> ValidationResult {
         let validator = GraphValidator::new(self);
         validator.validate()
     }
@@ -184,6 +184,19 @@ impl fmt::Display for ValidationError {
 
 impl Error for ValidationError {}
 
+struct ValidationResult {
+    valid: bool,
+    errors: Vec<ValidationError>,
+}
+
+impl ValidationResult {
+    fn new() -> Self {
+        Self {
+            valid: true,
+            errors: vec![],
+        }
+    }
+}
 // Validator for the graph structure
 struct GraphValidator<'a> {
     graph: &'a Graph, // We borrow the Graph, so tie the lifetimes
@@ -195,10 +208,13 @@ impl<'a> GraphValidator<'a> {
     }
 
     // Validate the entire graph
-    fn validate(&self) -> Vec<Result<(), ValidationError>> {
-        let mut results = vec![];
+    fn validate(&self) -> ValidationResult {
+        let mut results = ValidationResult::new();
         for node in self.graph.nodes.values() {
-            results.push(self.validate_node(node));
+            if let Err(e) = self.validate_node(node) {
+                results.valid = false;
+                results.errors.push(e);
+            };
         }
         results
     }
@@ -312,7 +328,7 @@ mod tests {
         let node3 = graph.add_node();
         graph.add_edge(node1, node2, EdgeKind::Straight);
         graph.add_edge(node2, node3, EdgeKind::Squiggly);
-        assert!(graph.validate().iter().any(|result| result.is_err()));
+        assert!(!graph.validate().valid);
     }
 
     #[test]
@@ -325,6 +341,6 @@ mod tests {
         graph.add_edge(node1, node2, EdgeKind::Straight);
         graph.add_edge(node1, node3, EdgeKind::Squiggly);
         graph.add_edge(node1, node4, EdgeKind::Squiggly);
-        assert!(graph.validate().iter().any(|result| result.is_err()));
+        assert!(!graph.validate().valid);
     }
 }
