@@ -70,6 +70,11 @@ impl Graph {
         self.nodes.remove(&id);
     }
 
+    /// Retrieves the node associated with the given ID.
+    fn get_node(&self, node_id: usize) -> &Node {
+        self.nodes.get(&node_id).expect("Node not found!")
+    }
+
     /// Adds a new edge between two nodes and returns its unique ID.
     fn add_edge(&mut self, from: usize, to: usize, kind: EdgeKind) -> usize {
         let id = self.next_id;
@@ -101,12 +106,17 @@ impl Graph {
         }
     }
 
+    /// Retrieves the edge associated with the given ID.
+    fn get_edge(&self, edge_id: usize) -> &Edge {
+        self.edges.get(&edge_id).expect("Edge not found!")
+    }
+
     /// Collapses a node with two edges into a single edge, removing the intermediate node.
     ///
     /// # Panics
     /// Panics if the node does not exist or has a number of edges other than two.
     fn collapse_node(&mut self, id: usize) {
-        let node = self.nodes.get(&id).expect("Node not found!");
+        let node = self.get_node(id);
         let edges = &node.edges;
 
         assert!(
@@ -122,8 +132,8 @@ impl Graph {
         let edge2_id = edges[1];
 
         // Get the connected nodes
-        let edge1 = self.edges.get(&edge1_id).expect("Edge not found!");
-        let edge2 = self.edges.get(&edge2_id).expect("Edge not found!");
+        let edge1 = self.get_edge(edge1_id);
+        let edge2 = self.get_edge(edge2_id);
         let node1 = Self::other_node(edge1, id);
         let node2 = Self::other_node(edge2, id);
 
