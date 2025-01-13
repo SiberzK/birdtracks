@@ -75,18 +75,19 @@ impl Graph {
         self.nodes.get(&node_id).expect("Node not found!")
     }
 
+    /// Retrieves the node (as mutable) associated with the given ID.
+    fn get_mut_node(&mut self, node_id: usize) -> &mut Node {
+        self.nodes.get_mut(&node_id).expect("Node not found!")
+    }
+
     /// Adds a new edge between two nodes and returns its unique ID.
     fn add_edge(&mut self, from: usize, to: usize, kind: EdgeKind) -> usize {
         let id = self.next_id;
         self.next_id += 1;
         self.edges.insert(id, Edge { id, from, to, kind });
         // Update the edges of the FROM and TO nodes.
-        if let Some(node1) = self.nodes.get_mut(&from) {
-            node1.edges.push(id);
-        }
-        if let Some(node2) = self.nodes.get_mut(&to) {
-            node2.edges.push(id);
-        }
+        self.get_mut_node(from).edges.push(id);
+        self.get_mut_node(to).edges.push(id);
         id
     }
 
@@ -98,12 +99,8 @@ impl Graph {
         // Remove the edge from graph
         let edge = self.edges.remove(&id).expect("Edge not Found!");
         // Update the nodes
-        if let Some(from) = self.nodes.get_mut(&edge.from) {
-            from.edges.retain(|&x| x != id);
-        }
-        if let Some(to) = self.nodes.get_mut(&edge.to) {
-            to.edges.retain(|&x| x != id);
-        }
+        self.get_mut_node(edge.from).edges.retain(|&x| x != id);
+        self.get_mut_node(edge.to).edges.retain(|&x| x != id);
     }
 
     /// Retrieves the edge associated with the given ID.
