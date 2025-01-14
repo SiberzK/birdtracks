@@ -6,7 +6,8 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq)]
 struct Node {
     id: usize,
-    edges: Vec<usize>, // IDs of connected edges
+    /// Edges are added clockwise around a node.
+    edges: Vec<usize>, // Ordered list of edge IDs
 }
 
 /// Represents an edge in the graph.
@@ -81,6 +82,11 @@ impl Graph {
     }
 
     /// Adds a new edge between two nodes and returns its unique ID.
+    ///
+    /// Edges are ordered.
+    /// E.g adding Edge A to a node, followed by Edge B, is different from B then A.
+    ///
+    /// You can think of it as adding them clockwise around a node.
     fn add_edge(&mut self, from: usize, to: usize, kind: EdgeKind) -> usize {
         let id = self.next_id;
         self.next_id += 1;
@@ -145,7 +151,7 @@ impl Graph {
         self.remove_node(id);
     }
 
-    /// Retrieves the node at the opposite end of the edge from the specified node
+    /// Retrieves the node at the opposite end of the edge from the specified node.
     fn other_node(edge: &Edge, id: usize) -> usize {
         if edge.from == id {
             edge.to
@@ -158,6 +164,77 @@ impl Graph {
     fn validate(&self) -> ValidationResult {
         let validator = GraphValidator::new(self);
         validator.validate()
+    }
+
+    /// Retrieves all edges attached to the specified node.
+    fn get_edges_for_node(&self, node_id: usize) -> Vec<&Edge> {
+        let node = self.nodes.get(&node_id).expect("Node not found!");
+        node.edges
+            .iter()
+            .filter_map(|&edge_id| self.edges.get(&edge_id))
+            .collect()
+    }
+
+    /// Retrieves straight edges of the given node, ordered relative to its squiggly edge.
+    ///
+    /// # Panics
+    /// Panics if there's no squiggly edge attached to the node.
+    fn rotate_by_squiggly(&self, node_id: usize) -> Vec<&Edge> {
+        let edges = self.get_edges_for_node(node_id);
+
+        // If there's a squiggly edge, rotate the edges to start from it
+        if let Some(squiggly_index) = edges
+            .iter()
+            .position(|edge| edge.kind == EdgeKind::Squiggly)
+        {
+            let mut rotated_edges = edges.clone();
+            rotated_edges.rotate_left(squiggly_index);
+
+            // Filter and collect straight edges from the rotated list
+            rotated_edges
+                .into_iter()
+                .filter(|edge| edge.kind == EdgeKind::Straight)
+                .collect()
+        } else {
+            panic!("No Squiggly edge!");
+        }
+    }
+
+    /// Checks if the given squiggly edge lies perpendicular between anti-parallel straight edges.
+    ///
+    /// Example:
+    ///
+    ///   -->--->--
+    ///       S
+    ///   --<---<--
+    fn is_between_antiparallels(&self, squiggly_edge_id: usize) -> bool {
+        let squiggly_edge = self.edges.get(&squiggly_edge_id).expect("Edge not found!");
+
+        let from_edges = self.rotate_by_squiggly(squiggly_edge.from);
+        let to_edges = self.rotate_by_squiggly(squiggly_edge.to);
+
+        if from_edges.len() != 2 || to_edges.len() != 2 {
+            return false;
+        }
+
+        // Since edges are ordered, we can compare relative directions by checking
+        // which ends are attached to the node, i.e does our straight edge come from,
+        // or go into our node. This creates a signature we can compare, e.g:
+        // (to, from) or (from, to), following the edges clockwise.
+        let from_directions: Vec<_> = from_edges
+            .iter()
+            .map(|e| e.to == squiggly_edge.from)
+            .collect();
+        let to_directions: Vec<_> = to_edges.iter().map(|e| e.to == squiggly_edge.to).collect();
+
+        from_directions == to_directions
+    }
+
+    /// Checks if the given node has exactly three edges, all squigglys.
+    fn is_3_squiggly_vertex(&self, node_id: usize) -> bool {
+        self.get_edges_for_node(node_id)
+            .iter()
+            .all(|&e| e.kind == EdgeKind::Squiggly)
     }
 }
 
@@ -367,5 +444,35 @@ mod tests {
         graph.add_edge(node1, node3, EdgeKind::Squiggly);
         graph.add_edge(node1, node4, EdgeKind::Squiggly);
         assert!(!graph.validate().valid);
+    }
+
+    #[test]
+    fn test_is_between_antiparallels() {
+        let mut graph = Graph::new();
+        let node1 = graph.add_node();
+        let node2 = graph.add_node(); // left squiggly
+        let node3 = graph.add_node();
+        let node4 = graph.add_node();
+        let node5 = graph.add_node(); // right squiggly
+        let node6 = graph.add_node();
+        graph.add_edge(node1, node2, EdgeKind::Straight);
+        graph.add_edge(node2, node3, EdgeKind::Straight);
+        let edge_id = graph.add_edge(node2, node5, EdgeKind::Squiggly);
+        graph.add_edge(node4, node5, EdgeKind::Straight);
+        graph.add_edge(node5, node6, EdgeKind::Straight);
+        assert!(graph.is_between_antiparallels(edge_id));
+    }
+
+    #[test]
+    fn test_is_3_squiggly_vertex() {
+        let mut graph = Graph::new();
+        let node1 = graph.add_node();
+        let node2 = graph.add_node();
+        let node3 = graph.add_node();
+        let node4 = graph.add_node();
+        graph.add_edge(node1, node2, EdgeKind::Squiggly);
+        graph.add_edge(node1, node3, EdgeKind::Squiggly);
+        graph.add_edge(node1, node4, EdgeKind::Squiggly);
+        assert!(graph.is_3_squiggly_vertex(node1));
     }
 }
