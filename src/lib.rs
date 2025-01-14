@@ -59,16 +59,16 @@ impl Graph {
     ///
     /// # Panics
     /// Panics if the node has any connected edges or if the node does not exist.
-    fn remove_node(&mut self, id: usize) {
+    fn remove_node(&mut self, node_id: usize) {
         assert!(
             self.nodes
-                .get(&id)
+                .get(&node_id)
                 .expect("Node not found!")
                 .edges
                 .is_empty(),
             "Cannot remove a node that has edges!"
         );
-        self.nodes.remove(&id);
+        self.nodes.remove(&node_id);
     }
 
     /// Retrieves the node associated with the given ID.
@@ -101,12 +101,12 @@ impl Graph {
     ///
     /// # Panics
     /// Panics if the edge does not exist.
-    fn remove_edge(&mut self, id: usize) {
+    fn remove_edge(&mut self, edge_id: usize) {
         // Remove the edge from graph
-        let edge = self.edges.remove(&id).expect("Edge not Found!");
+        let edge = self.edges.remove(&edge_id).expect("Edge not Found!");
         // Update the nodes
-        self.get_mut_node(edge.from).edges.retain(|&x| x != id);
-        self.get_mut_node(edge.to).edges.retain(|&x| x != id);
+        self.get_mut_node(edge.from).edges.retain(|&x| x != edge_id);
+        self.get_mut_node(edge.to).edges.retain(|&x| x != edge_id);
     }
 
     /// Retrieves the edge associated with the given ID.
@@ -118,8 +118,8 @@ impl Graph {
     ///
     /// # Panics
     /// Panics if the node does not exist or has a number of edges other than two.
-    fn collapse_node(&mut self, id: usize) {
-        let node = self.get_node(id);
+    fn collapse_node(&mut self, node_id: usize) {
+        let node = self.get_node(node_id);
         let edges = &node.edges;
 
         assert!(
@@ -137,8 +137,8 @@ impl Graph {
         // Get the connected nodes
         let edge1 = self.get_edge(edge1_id);
         let edge2 = self.get_edge(edge2_id);
-        let node1 = Self::other_node(edge1, id);
-        let node2 = Self::other_node(edge2, id);
+        let node1 = Self::other_node(edge1, node_id);
+        let node2 = Self::other_node(edge2, node_id);
 
         // Create a new edge connecting node1 and node2
         self.add_edge(node1, node2, edge1.kind);
@@ -148,12 +148,12 @@ impl Graph {
         self.remove_edge(edge2_id);
 
         // Remove the intermediate node
-        self.remove_node(id);
+        self.remove_node(node_id);
     }
 
     /// Retrieves the node at the opposite end of the edge from the specified node.
-    fn other_node(edge: &Edge, id: usize) -> usize {
-        if edge.from == id {
+    fn other_node(edge: &Edge, node_id: usize) -> usize {
+        if edge.from == node_id {
             edge.to
         } else {
             edge.from
