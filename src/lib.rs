@@ -325,14 +325,14 @@ impl<'a> GraphValidator<'a> {
         match node.edges.len() {
             0 => Err(ValidationError::new(DanglingNode)),
             1 => Ok(()),
-            2 => self.is_straight_to_squiggly(node),
-            3 => self.is_1_straight_2_squiggly(node),
+            2 => self.validate_continuous_edge_kind(node),
+            3 => self.validate_number_of_squiggly_edges(node),
             _ => Err(ValidationError::new(TooManyEdges)),
         }
     }
 
-    /// Checks if a node with 2 edges has edges of the same kind.
-    fn is_straight_to_squiggly(&self, node: &Node) -> Result<(), ValidationError> {
+    /// Validates that a node with exactly 2 edges has each one the same kind.
+    fn validate_continuous_edge_kind(&self, node: &Node) -> Result<(), ValidationError> {
         let edges = &node.edges;
         let edge1 = self.graph.edges.get(&edges[0]);
         let edge2 = self.graph.edges.get(&edges[1]);
@@ -349,8 +349,8 @@ impl<'a> GraphValidator<'a> {
         }
     }
 
-    /// Checks if a node with 3 edges has at most 1 squiggly edge.
-    fn is_1_straight_2_squiggly(&self, node: &Node) -> Result<(), ValidationError> {
+    /// Validates that a node with 3 edges never has 2 of them squiggly.
+    fn validate_number_of_squiggly_edges(&self, node: &Node) -> Result<(), ValidationError> {
         let edges = &node.edges;
         let edge1 = self.graph.edges.get(&edges[0]);
         let edge2 = self.graph.edges.get(&edges[1]);
