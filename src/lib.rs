@@ -104,9 +104,20 @@ impl Graph {
     fn remove_edge(&mut self, edge_id: usize) {
         // Remove the edge from graph
         let edge = self.edges.remove(&edge_id).expect("Edge not Found!");
+
         // Update the nodes
         self.get_mut_node(edge.from).edges.retain(|&x| x != edge_id);
         self.get_mut_node(edge.to).edges.retain(|&x| x != edge_id);
+
+        // Remove any dangling nodes
+        let from_node = self.get_node(edge.from);
+        if from_node.edges.is_empty() {
+            self.remove_node(from_node.id);
+        }
+        let to_node = self.get_node(edge.to);
+        if to_node.edges.is_empty() {
+            self.remove_node(to_node.id);
+        }
     }
 
     /// Retrieves the edge associated with the given ID.
@@ -143,12 +154,9 @@ impl Graph {
         // Create a new edge connecting node1 and node2
         self.add_edge(node1, node2, edge1.kind);
 
-        // Remove the old edges
+        // Remove the old edges (this will also remove the node, since it's left dangling)
         self.remove_edge(edge1_id);
         self.remove_edge(edge2_id);
-
-        // Remove the intermediate node
-        self.remove_node(node_id);
     }
 
     /// Retrieves the node at the opposite end of the edge from the specified node.
